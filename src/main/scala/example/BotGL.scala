@@ -65,9 +65,12 @@ object BotGL {
     var location = PVector(0, 0)
     var velocity = PVector(0, 0)
     var accseleration = PVector(0, 0)
+    var friction = PVector(0, 0)
     var size = PVector(10, 10)
+    var sizeLenght = 1.0
+    var mass = 1.0
     def applayForce(incomingForce:PVector) = {
-      accseleration += incomingForce
+      accseleration += incomingForce / mass
       this
     }
     def +(input:PVector) = {
@@ -85,6 +88,25 @@ object BotGL {
       size = PVector(width,height)
       this
     }
+    def size( lenght:Double):Render = {
+      sizeLenght = lenght
+      //size = PVector(width,height)
+      this
+    }
+    def friction(k:Double):Render = {
+      friction = velocity match {
+        case PVector(0, 0) => velocity
+        case _ => velocity.normalize() * k
+      }
+      this
+    }
+
+    def mass( input:Double):Render = {
+      mass = input
+      this
+    }
+
+
     def location(p:PVector):Render = {
       location = p
       this
@@ -105,7 +127,7 @@ object BotGL {
 
 
     def updateState() = {
-      velocity += accseleration
+      velocity += accseleration + friction
       location += velocity
       accseleration = PVector(0, 0)
       CollisionSegments(this)
@@ -172,10 +194,12 @@ object BotGL {
 
     class Krug(_x:Int, _y:Int) extends Render{
       location = PVector(_x, _y)
+      //override var size:Double = 1.0
+
       def toRender = {
         render.moveTo(location.x, location.y)
         //render.lineTo()
-        render.arc(location.x, location.y,10,0,Math.PI*2,true);
+        render.arc(location.x, location.y, sizeLenght,0,Math.PI*2,true);
         this
       }
     }
@@ -196,7 +220,7 @@ object BotGL {
     val sceneHigh = dom.window.innerWidth
     val sceneWidth = dom.window.innerHeight
 
-    val newSquaer = (0 to 10).map(item => Krug(item*100,Random.nextInt(300)).size(PVector(10.0, 10.0)) ).toList
+    val newSquaer = (0 to 10).map(item => Krug(item*100,Random.nextInt(300)).mass(Random.nextDouble()*3).friction(-0.1)).toList.map(item => item.size(item.mass*10))
 
     var mouse = PVector(MausePos.x, MausePos.y)
     var center = PVector(sceneWidth/2,sceneHigh/2)
@@ -237,6 +261,7 @@ var wind = PVector(-0.3, 0)
         obekt
       .applayForce((mouse - obekt.location).magnitude(3))
       .applayForce(PVector(0.03, 0.03))
+      .applayForce(obekt.friction(-0.02).friction)
       //.applayForce(gravity)
       //.applayForce(wind)
       //.velocity(if(obekt.location.y>400 || obekt.location.y<100 ) -obekt.velocity else obekt.velocity)
